@@ -1,4 +1,6 @@
 /*
+ * Demonstrate how to draw a triangle with VBO and fixed pipeline.
+ * 
  * Copyright © 2013 Inori Sakura <inorindesu@gmail.com>
  *
  * This work is free. You can redistribute it and/or modify it under the
