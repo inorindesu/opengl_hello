@@ -14,6 +14,43 @@
 #include <GL/glew.h>
 #include <GL/glfw3.h>
 
+char* read_all_bytes(char* path)
+{
+  FILE* fp = fopen(path, "r");
+  if (fp == NULL)
+    return NULL;
+  
+  fseek(fp, 0, SEEK_END);
+  long fileSize = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  
+  char* buffer = malloc(fileSize + 1);
+  int readCount = fread(buffer, 1, fileSize, fp);
+  buffer[fileSize] = '\0';
+  fclose(fp);
+  return buffer;
+}
+
+void show_gl_shader_compilation_error(GLuint shaderHandle)
+{
+  int errorLogLength;
+  glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &errorLogLength);
+  char* buffer = malloc(errorLogLength + 1);
+  glGetShaderInfoLog(shaderHandle, errorLogLength + 1, NULL, buffer);
+  fprintf(stderr, buffer);
+  free(buffer);
+}
+
+void show_gl_linking_error(GLuint programHandle)
+{
+  int errorLogLength;
+  glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH, &errorLogLength);
+  char* buffer = malloc(errorLogLength + 1);
+  glGetProgramInfoLog(programHandle, errorLogLength + 1, NULL, buffer);
+  fprintf(stderr, buffer);
+  free(buffer);
+}
+
 static const GLfloat vertices[] =
   {
     -1.0f, -1.0f, 0.0f,
@@ -23,9 +60,9 @@ static const GLfloat vertices[] =
 
 static const GLfloat colors[] = 
   {
-    1.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 1.0f,
-    0.0f, 1.0f, 0.0f
+    1.0f, 0.75f, 0.75f,
+    0.75f, 0.75f, 1.0f,
+    0.75f, 1.0f, 0.75f
   };
 
 int main()
@@ -38,7 +75,6 @@ int main()
     }
 
   glfwWindowHint(GLFW_FSAA_SAMPLES, 4);
-  glfwWindowHint(GLFW_DEPTH_BITS, 16);
   // so sad that nouveau driver cannot provide OpenGL 3.3..
   glfwWindowHint(GLFW_OPENGL_VERSION_MAJOR, 2);
   glfwWindowHint(GLFW_OPENGL_VERSION_MINOR, 1);
@@ -88,6 +124,52 @@ int main()
   glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
   glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
 
+  // load shader
+  //
+  // vertex shader
+  int compilationStatus;
+  int vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
+  char* vertexShaderCode = read_all_bytes("passThrough.vertex");
+  glShaderSource(vertexShaderHandle, 1, (const GLchar**)&vertexShaderCode, NULL);
+  glCompileShader(vertexShaderHandle);
+  free(vertexShaderCode);
+  glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &compilationStatus);
+  if (compilationStatus != GL_TRUE)
+    {
+      fprintf(stderr, "ERROR: while compiling vertex shader.");
+      show_gl_shader_compilation_error(vertexShaderHandle);
+      return -1;
+    }
+
+  int fragShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
+  char* fragShaderCode = read_all_bytes("passThrough.frag");
+  glShaderSource(fragShaderHandle, 1, (const GLchar**)&fragShaderCode, NULL);
+  glCompileShader(fragShaderHandle);
+  free(fragShaderCode);
+  glGetShaderiv(fragShaderHandle, GL_COMPILE_STATUS, &compilationStatus);
+  if (compilationStatus != GL_TRUE)
+    {
+      fprintf(stderr, "ERROR: while compiling fragment shader\n");
+      show_gl_shader_compilation_error(fragShaderHandle);
+      return -1;
+    }
+
+  int programHandle = glCreateProgram();
+  glAttachShader(programHandle, vertexShaderHandle);
+  glAttachShader(programHandle, fragShaderHandle);
+  glLinkProgram(programHandle);
+  glGetProgramiv(programHandle, GL_LINK_STATUS, &compilationStatus);
+  if (compilationStatus != GL_TRUE)
+    {
+      fprintf(stderr, "ERROR: while linking shader\n");
+      show_gl_linking_error(programHandle);
+      return -1;
+    }
+  glUseProgram(programHandle);
+  GLint vertexPositionIndex = glGetAttribLocation(programHandle, "vertexPosition");
+  GLint vertexColorIndex = glGetAttribLocation(programHandle, "vertexColor");
+  fprintf(stderr, "vertexPositionIndex: %d\nvertexColorIndex: %d\n", vertexPositionIndex, vertexColorIndex);
+
   while(true)
     {
       glfwMakeContextCurrent(window);
@@ -95,19 +177,28 @@ int main()
       // OpenGL drawing code
       glClear( GL_COLOR_BUFFER_BIT );
 
-      glEnableClientState(GL_VERTEX_ARRAY);
+      // Original opengl-tutorial.org tutorial uses 0 here
+      // I don't feel it right
+      glEnableVertexAttribArray(vertexPositionIndex);
       glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHandle);
-      glVertexPointer(3, GL_FLOAT, 0, (void*)0);
-
-      glEnableClientState(GL_COLOR_ARRAY);
+      glVertexAttribPointer(vertexPositionIndex, 3, GL_FLOAT,
+                            GL_FALSE, 0,
+                            NULL);
+                            
+      // Original opengl-tutorial.org tutorial uses 1 here
+      // I don't feel it right
+      glEnableVertexAttribArray(vertexColorIndex);
       glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-      glColorPointer(3, GL_FLOAT, 0, (void*)0);
+      glVertexAttribPointer(vertexColorIndex, 3, GL_FLOAT,
+                            GL_FALSE, 0,
+                            NULL);
 
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
+      glDisableVertexAttribArray(vertexPositionIndex);
+      glDisableVertexAttribArray(vertexColorIndex);
+
       glFlush();
-      glDisableClientState(GL_VERTEX_ARRAY);
-      glDisableClientState(GL_COLOR_ARRAY);
 
       glfwSwapBuffers(window);
       glfwPollEvents();
@@ -118,9 +209,19 @@ int main()
     }
   
   // cleanup
+  //
+  // shader cleanup
+  glUseProgram(0);
+  glDetachShader(programHandle, vertexShaderHandle);
+  glDeleteShader(vertexShaderHandle);
+  glDetachShader(programHandle, fragShaderHandle);
+  glDeleteShader(fragShaderHandle);
+  glDeleteProgram(programHandle);
+
+  // VBO cleanup
   glDeleteBuffers(1, &vertexBufferHandle);
   glDeleteBuffers(1, &colorBufferHandle);
-  
+
   glfwTerminate();
   return 0;
 }

@@ -1,7 +1,14 @@
 #version 120
+
+// Input attributes
 attribute vec3 vertexPosition;
+attribute vec3 vertexColor;
+
+// output (to fragment shader)
+varying vec3 color;
 
 void main()
 {
         gl_Position = vec4(vertexPosition, 1.0);
+        color = vertexColor;
 }
