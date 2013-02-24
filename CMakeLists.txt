@@ -18,8 +18,16 @@ target_link_libraries(gl_01 ${LIBS})
 add_executable(gl_01_shader gl_01_shader.c)
 target_link_libraries(gl_01_shader ${LIBS})
 
+set(shader_copier)
 FOREACH(CPFILE ${DATA})
     add_custom_command(
-      TARGET gl_01_shader
-      COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${CPFILE}" "${CMAKE_CURRENT_BINARY_DIR}/${CPFILE}")
+      OUTPUT ${CPFILE}
+      COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${CPFILE}" "${CMAKE_CURRENT_BINARY_DIR}/${CPFILE}"
+      DEPENDS ${CPFILE})
+    list(APPEND shader_copier ${CPFILE})
 ENDFOREACH(CPFILE)
+
+add_custom_target(
+  copy_shaders ALL
+  DEPENDS ${shader_copier})
+
