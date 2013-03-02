@@ -43,8 +43,12 @@ int main()
   glfwWindowHint(GLFW_OPENGL_VERSION_MAJOR, 2);
   glfwWindowHint(GLFW_OPENGL_VERSION_MINOR, 1);
   //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  int lastW = 640;
+  int lastH = 480;
+  int curW = 640;
+  int curH = 480;
   
-  GLFWwindow window = glfwCreateWindow(300, 300, GLFW_WINDOWED, "Hello world!", NULL);
+  GLFWwindow window = glfwCreateWindow(curW, curH, GLFW_WINDOWED, "Hello world!", NULL);
   if (window == NULL)
     {
       glfwTerminate();
@@ -90,6 +94,14 @@ int main()
 
   while(true)
     {
+      glfwGetWindowSize(window, &curW, &curH);
+      if (curW != lastW || curH != lastH)
+        {
+          lastW = curW;
+          lastH = curH;
+          glViewport(0, 0, curW, curH);
+        }
+      
       glfwMakeContextCurrent(window);
       
       // OpenGL drawing code
