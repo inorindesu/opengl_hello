@@ -1,0 +1,14 @@
+#version 120
+
+// Input attributes
+attribute vec3 vertexPosition;
+attribute vec2 vertexUV;
+
+// output (to fragment shader)
+varying vec2 UV;
+
+void main()
+{
+        gl_Position = vec4(vertexPosition, 1.0);
+        UV = vertexUV;
+}

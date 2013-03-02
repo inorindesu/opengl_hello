@@ -5,11 +5,15 @@ set(LIBS
   GL
   glfw
   GLEW
+  png15
   )
 
 set(DATA
   passThrough.vertex
   passThrough.frag
+  texture.vertex
+  texture.frag
+  texture.png
   )
 
 add_executable(gl_01 gl_01.c)
@@ -17,6 +21,9 @@ target_link_libraries(gl_01 ${LIBS})
 
 add_executable(gl_01_shader gl_01_shader.c)
 target_link_libraries(gl_01_shader ${LIBS})
+
+add_executable(gl_texture gl_texture.c)
+target_link_libraries(gl_texture ${LIBS})
 
 set(shader_copier)
 FOREACH(CPFILE ${DATA})
