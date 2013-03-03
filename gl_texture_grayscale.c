@@ -313,6 +313,7 @@ int main()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glGenerateMipmap(GL_TEXTURE_2D);
+  free(textureData);
 
   // background color of THE SQUARE!
   glUniform3f(backcolorIndex, 216 / 255.0f, 232 / 255.0f, 194 / 255.0f);
