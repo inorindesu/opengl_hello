@@ -13,7 +13,9 @@ set(DATA
   passThrough.frag
   texture.vertex
   texture.frag
+  grayTexture.frag
   texture.png
+  Trollface.png
   )
 
 add_executable(gl_01 gl_01.c)
@@ -24,6 +26,9 @@ target_link_libraries(gl_01_shader ${LIBS})
 
 add_executable(gl_texture gl_texture.c)
 target_link_libraries(gl_texture ${LIBS})
+
+add_executable(gl_texture_grayscale gl_texture_grayscale.c)
+target_link_libraries(gl_texture_grayscale ${LIBS})
 
 set(shader_copier)
 FOREACH(CPFILE ${DATA})
